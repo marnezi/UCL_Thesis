@@ -25,18 +25,19 @@ seed = 1042 # set seed for reproducibility
 #Create a random graph using networkx
 
 # Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 8 # Laplacian_matrix.shape[1] # number of nodes 
+nodes_number = 10 # Laplacian_matrix.shape[1] # number of nodes 
 transition_prob = 0.6 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+
+np.log(10)/10
 
 er_igraph = nx.erdos_renyi_graph(n=nodes_number, p=transition_prob,seed = 1042)
 nx.is_connected(er_igraph)#check connectivity 
 
-nx.draw(er_igraph,with_labels=True, edge_color='gray', node_size=800, font_size=12)
+pos = nx.spring_layout(er_igraph, seed=seed)
 
-# Show the plot
-plt.title(f"Erdős–Rényi Graph")
+nx.draw(er_igraph, pos=pos, with_labels=True, edge_color='gray', node_size=800, font_size=12)
+plt.title("Erdős–Rényi Graph")
 plt.show()
-
 
 #Configuration settigns
 
@@ -168,44 +169,24 @@ eigvals = np.linalg.eigvalsh(etta_parameter * np.eye(nodes_number) - laplacian_e
 print("Min eig of (eta I - L_eta):", np.min(eigvals))
 
 
+def psi_n(u):
+    return np.mean(np.exp(1j * x_samples @ u))
 
+U = np.sqrt(np.log(number_samples))  # we can try different u settings
+psi_matrix = np.zeros((nodes_number, nodes_number), dtype=np.float64)
 
-pos = nx.spring_layout(er_igraph)
-edges = nx.get_edge_attributes(er_igraph, 'weight')
-nx.draw(er_igraph, pos, with_labels=True, node_color='lightblue')
-nx.draw_networkx_edge_labels(er_igraph, transition_prob, edge_labels={e: f"{w:.2f}" for e, w in edges.items()})
+for i in range(nodes_number):
+    psi_matrix[i, i] = -2 / U**2 * np.log(np.abs(psi_n(U * e[i])))
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
+for i in range(nodes_number):
+    for j in range(i+1, nodes_number):
+        term = (e[i] + e[j]) / np.sqrt(2)
+        psi_matrix[i, j] = psi_matrix[j, i] = -2 / U**2 * np.log(np.abs(psi_n(U * term))) - 0.5 * (psi_matrix[i, i] + psi_matrix[j, j])
 
-# Example: assume you already have the matrices
-# true_L_eta: the true Laplacian with smoothing
-# est_L_eta: your estimated Laplacian from Fourier transform
-# If needed, project to PSD before plotting
+covariance_hat_vanilla = psi_matrix
+precision_hat_vanilla = np.linalg.inv(covariance_hat_vanilla)
 
-# Compute difference matrix
-diff = laplacian_etta_hat - laplacian_etta
-
-# Set up the 3-panel plot
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-
-sns.heatmap(laplacian_etta, ax=axes[0], cmap='viridis', square=True, cbar=True)
-axes[0].set_title('True $L(\\eta)$')
-
-sns.heatmap(laplacian_etta_hat, ax=axes[1], cmap='viridis', square=True, cbar=True)
-axes[1].set_title('Estimated $\\hat{L}(\\eta)$')
-
-sns.heatmap(diff, ax=axes[2], cmap='coolwarm', center=0, square=True, cbar=True)
-axes[2].set_title('Difference $\\hat{L}(\\eta) - L(\\eta)$')
-
-plt.tight_layout()
-plt.show()
-
-
-
-
-
+np.linalg.norm( (precision_hat_vanilla-precision_matrix) ,ord = "fro") #overall error
 
 
 

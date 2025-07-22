@@ -25,28 +25,65 @@ seed = 1042 # set seed for reproducibility
 
 # Step 1: Create a Erdos Reyni graph to test 
 nodes_number = 10 # Laplacian_matrix.shape[1] # number of nodes 
-transition_prob = 0.4 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+transition_prob = 0.6 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+
+np.log(10)/10
 
 er_igraph = nx.erdos_renyi_graph(n=nodes_number, p=transition_prob,seed = 1042)
 nx.is_connected(er_igraph)#check connectivity 
 
-nx.draw(er_igraph,with_labels=True, edge_color='gray', node_size=800, font_size=12)
+pos = nx.spring_layout(er_igraph, seed=seed)
 
-# Show the plot
-plt.title(f"Erdős–Rényi Graph")
+nx.draw(er_igraph, pos=pos, with_labels=True, edge_color='gray', node_size=800, font_size=12)
+plt.title("Erdős–Rényi Graph")
 plt.show()
 
+#Estimate the Adjacency matrix and Degree matrix 
+
+# Get adjacency matrix
+adjacent_matrix = nx.to_numpy_array(er_igraph)
+degree_matrix = np.diag(np.sum(adjacent_matrix, axis=1))
+
+
+# Estimate the Laplacian 
+laplacian_matrix = degree_matrix - adjacent_matrix
+laplacian_matrix
+
+laplacian_matrix = nx.laplacian_matrix(er_igraph).toarray()
+max_eigenvalue = np.linalg.eigvals(laplacian_matrix).max()
+
+#Plot adjacency and degree matrix
+fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+
+# Adjacency matrix
+sea.heatmap(adjacent_matrix, annot=True, cmap="Blues", cbar=False, square=True, ax=axs[0])
+axs[0].set_title("Adjacency Matrix")
+axs[0].set_xlabel("Node")
+axs[0].set_ylabel("Node")
+
+# Degree matrix
+sea.heatmap(degree_matrix, annot=True, cmap="Greens", cbar=False, square=True, ax=axs[1])
+axs[1].set_title("Degree Matrix")
+axs[1].set_xlabel("Node")
+axs[1].set_ylabel("Node")
+
+plt.tight_layout()
+plt.savefig("adjacency_degree_side_by_side_nocbar.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+#laplacian 
+print(laplacian_matrix)
 
 #Configuration settigns
 
-number_samples = 200000
-mass_parameter = 1000# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
-etta_parameter = 1100 # smoothing parameter 
+number_samples = 70000
+mass_parameter = 10# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
+etta_parameter = 1 # smoothing parameter 
 
 fixed_node = 0 # at least one node equal to zero Dirichlet boundary condition 
 
 #Check 
-(nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
+((nodes_number**4)*np.log(nodes_number))/(transition_prob**2)
 number_samples
 number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
 
@@ -60,18 +97,12 @@ number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
 # what is the error estimate - what influence it the most - plots 
 
 
-# Estimate the Laplacian 
-adjacent_matrix = nx.to_numpy_array(er_igraph)
-degree_matrix = np.diag(np.sum(adjacent_matrix, axis=1))
-laplacian_matrix = degree_matrix - adjacent_matrix
-laplacian_matrix
-
-laplacian_matrix = nx.laplacian_matrix(er_igraph).toarray()
-max_eigenvalue = np.linalg.eigvals(laplacian_matrix).max()
-
 #Compute the precision matrix
 precision_matrix = laplacian_matrix + mass_parameter*np.eye(nodes_number) #precision matrix
 covariance_matrix = np.linalg.inv(precision_matrix)
+
+covariance_matrix[1,:]
+precision_matrix[1,:]
 
 covariance_matrix_Y = etta_parameter*np.eye(nodes_number)
 
@@ -113,12 +144,34 @@ for i in range(nodes_number):
             laplacian_etta_hat[j,i] = laplacian_etta_hat[i,j] = -2*np.log(np.abs(phi_t(term_1)))+np.log(np.abs(phi_t_values[i]))+np.log(np.abs(phi_t_values[j]))
             
 
-laplacian_etta_hat.shape
+laplacian_etta_hat
+laplacian_etta
+
+
+L_eta_hat = laplacian_etta_hat
+c_eta = np.sqrt(np.linalg.det(L_eta_hat /etta_parameter))
+L_norm2 = np.linalg.norm(L_eta_hat, 2)
+c_star = 0.5 * c_eta * np.exp(-0.5 * L_norm2**2)
+print("c_*(eta):", c_star)
+
+
+log_d = np.log(nodes_number)
+bound = (1 / c_star) * np.sqrt(log_d /number_samples)
+bound
+
 np.linalg.eigvalsh(laplacian_etta_hat)     
 
  #  check the concentration bounds
-error_norm = np.linalg.norm((laplacian_etta_hat-laplacian_etta), ord=2)
+error = np.linalg.norm(laplacian_etta_hat - laplacian_etta, ord='fro')/nodes_number
+print("Average Frobenius error per entry:", error)
+
+error<bound
+
+error_norm = np.linalg.norm(laplacian_etta_hat - laplacian_etta, ord=2)
+
+#Check theoreum 3.1
 ((max_eigenvalue+mass_parameter+etta_parameter)/(etta_parameter**2))*error_norm
+((max_eigenvalue+mass_parameter+etta_parameter)/(etta_parameter**2))*error_norm<1
       
 eigvals = np.linalg.eigvalsh(laplacian_etta_hat)
       
@@ -135,9 +188,10 @@ eigvals_diff
 if np.any(eigvals_diff <= 1e-8):
     print("⚠️ Warning: eta I - L_hat is nearly singular!")
 
-     
-precision_matrix_hat = etta_parameter**2*(np.linalg.inv(etta_parameter*np.eye(nodes_number) - laplacian_etta)) - etta_parameter*np.eye(nodes_number)
-   
+    
+precision_matrix_hat = etta_parameter**2*(np.linalg.inv(etta_parameter*np.eye(nodes_number) - laplacian_etta_hat)) - etta_parameter*np.eye(nodes_number)
+precision_matrix_hat
+
 #Lets estimate the forbenius norm for the laplacian and for the precision 
      
 forebenius_norm_error = np.linalg.norm( (precision_matrix_hat-precision_matrix) ,ord = "fro") #overall error
@@ -161,10 +215,6 @@ print("||precision_hat||_F =", np.linalg.norm(precision_matrix_hat, ord='fro'))
 eigvals = np.linalg.eigvalsh(etta_parameter * np.eye(nodes_number) - laplacian_etta)
 print("Min eig of (eta I - L_eta):", np.min(eigvals))
 
-
-precision_matrix
-
-precision_matrix_hat
 
 
 
