@@ -15,8 +15,6 @@ import math
 from matplotlib import cm
 from tqdm import tqdm
 import itertools
-import optuna
-
 
 seed = 1042 # set seed for reproducibility
 
@@ -24,7 +22,7 @@ seed = 1042 # set seed for reproducibility
 #Create a random graph using networkx
 
 # Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 10 # Laplacian_matrix.shape[1] # number of nodes 
+nodes_number = 20 # Laplacian_matrix.shape[1] # number of nodes 
 transition_prob = 0.6 # probability of # of edges per node (we keep it high so we have less disconnected samples)
 
 np.log(10)/10
@@ -77,7 +75,7 @@ print(laplacian_matrix)
 #Configuration settigns
 
 number_samples = 70000
-mass_parameter = 10# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
+mass_parameter = 1# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
 etta_parameter = 1 # smoothing parameter 
 
 fixed_node = 0 # at least one node equal to zero Dirichlet boundary condition 
@@ -186,7 +184,7 @@ eigvals_diff = np.linalg.eigvalsh(etta_parameter * np.eye(nodes_number) - laplac
 eigvals_diff
 
 if np.any(eigvals_diff <= 1e-8):
-    print("⚠️ Warning: eta I - L_hat is nearly singular!")
+    print("Warning: L_hat is nearly singular!")
 
     
 precision_matrix_hat = etta_parameter**2*(np.linalg.inv(etta_parameter*np.eye(nodes_number) - laplacian_etta_hat)) - etta_parameter*np.eye(nodes_number)
@@ -214,6 +212,14 @@ print("||precision_hat||_F =", np.linalg.norm(precision_matrix_hat, ord='fro'))
 
 eigvals = np.linalg.eigvalsh(etta_parameter * np.eye(nodes_number) - laplacian_etta)
 print("Min eig of (eta I - L_eta):", np.min(eigvals))
+
+#recover the laplacian matrix through the precision hat 
+#reconstruct the graph using the laplacian 
+# look at the eigenvalues of laplacian - properties of the graph (0s - connectivity)
+# check eigenvalue 
+#Fiedler value - second eigenvalue - tells you how conencted the graph is 
+# average degree of the matrix - global property of Laplacian 
+
 
 
 
@@ -483,6 +489,7 @@ plt.show()
 # you have all independent GFF - data you will haev access too as a human being - signa hat -1 from those - in this case you also have access to the sigma the true one - are they close enought - how good is the recovering precedure - what is the probability that i am making the mistake 
 #check the concentrtion bounds - the mistakes the author are making - the bounds should tell me how big the n should be so you are quarantee that your error is whithin your tolerance 
 # when you are a oracle yuo can know the number of n, 
+#reference 
 
 
 
