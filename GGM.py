@@ -23,7 +23,7 @@ seed = 1042 # set seed for reproducibility
 
 # Step 1: Create a Erdos Reyni graph to test 
 nodes_number = 10 # Laplacian_matrix.shape[1] # number of nodes 
-transition_prob = 0.6 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+transition_prob = 0.25 # probability of # of edges per node (we keep it high so we have less disconnected samples)
 
 np.log(10)/10
 
@@ -76,7 +76,7 @@ print(laplacian_matrix)
 
 #Check 
 
-number_samples = 70000
+number_samples = 400000
 ((nodes_number**4)*np.log(nodes_number))/(transition_prob**2)
 number_samples
 number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
@@ -86,8 +86,6 @@ mass_parameter = 1# we keep this fixed if it is too smaller than one the eigenva
 etta_parameter = 0.5 # smoothing parameter 
 
 fixed_node = 0 # at least one node equal to zero Dirichlet boundary condition 
-
-
 
 # Step 1: Simulate a Gaussian Free Field of a graph many times (independent graphs) and 
 # estimate the true Sigma
@@ -149,7 +147,6 @@ laplacian_etta_hat
 laplacian_etta
 
 # Check the threoritical quarantees
-
 
 L_eta_hat = laplacian_etta_hat
 c_eta = np.sqrt(np.linalg.det(L_eta_hat /etta_parameter))
@@ -217,6 +214,174 @@ print("||precision_hat||_F =", np.linalg.norm(precision_matrix_hat, ord='fro'))
 
 eigvals = np.linalg.eigvalsh(etta_parameter * np.eye(nodes_number) - laplacian_etta)
 print("Min eig of (eta I - L_eta):", np.min(eigvals))
+
+
+
+#------------------------------- run a cross validation method while keeping the constraints to find the most optimal etta value ----------------------------------------------
+
+
+#check that all the eigenvalues are positive definite 
+#check the spectral norm error of the graph laplacian 
+# evaluate at the precision matrix 
+
+eta_parameters = np.arange(0.5,20,0.5)
+heat_map_matrix = pd.DataFrame({'Eta_param': eta_parameters,'Spectral error':0,'Forbenius error':0, 'TheoriticaL_q':0})
+
+eta= 0.5
+seed = 1042 
+ss = np.random.SeedSequence(seed)  
+children = ss.spawn(len(eta_parameters))
+    
+for k, eta in enumerate(eta_parameters):
+    print(eta)
+    rng = np.random.default_rng(children[k])
+
+    etta_parameter = eta # smoothing parameter 
+
+
+    #Compute the precision matrix
+    precision_matrix = laplacian_matrix + mass_parameter*np.eye(nodes_number) #precision matrix
+    covariance_matrix = np.linalg.inv(precision_matrix)
+
+    covariance_matrix[1,:]
+    precision_matrix[1,:]
+
+    covariance_matrix_Y = etta_parameter*np.eye(nodes_number)
+     
+    #generate mutliple samples from Sigma
+    x_samples = rng.multivariate_normal(mean = np.zeros(nodes_number),cov= covariance_matrix, size = number_samples)
+    x_samples.shape
+
+    y_samples = rng.multivariate_normal(mean = np.zeros(nodes_number), cov= covariance_matrix_Y,size = number_samples)
+    y_samples.shape
+
+    #Create the Laplacian matrix from the fourier analysis 
+    laplacian_etta = np.linalg.inv(covariance_matrix + (1/etta_parameter)* np.eye(laplacian_matrix.shape[0]))
+
+    laplacian_etta_hat = np.zeros((nodes_number,nodes_number))
+    e = np.eye(nodes_number)
+
+    #estimate phi ouside to make the script more fast (only for the diagonal points)
+
+    phi_t_values = [phi_t(e[i]) for i in range(nodes_number)]
+    phi_t_0 = phi_t(np.zeros(nodes_number))
+    i=j=1
+
+    # Estimate the diagonal and off-diagonal entries in the laplacian matrix 
+    for i in range(nodes_number):
+        print(f"Running iteration i = {i}")
+        for j in range(nodes_number):
+            if i == j:
+                laplacian_etta_hat[i,i] = -2*np.log(np.abs(phi_t_values[i]))+2*np.log(np.abs(phi_t_0))
+            else:
+                term_1 = (e[i] + e[j]) / np.sqrt(2)
+                laplacian_etta_hat[j,i] = laplacian_etta_hat[i,j] = -2*np.log(np.abs(phi_t(term_1)))+np.log(np.abs(phi_t_values[i]))+np.log(np.abs(phi_t_values[j]))
+            
+    # Check the threoritical quarantees
+    
+    
+    L_eta_hat = laplacian_etta_hat
+    c_eta = np.sqrt(np.linalg.det(L_eta_hat /etta_parameter))
+    L_norm2 = np.linalg.norm(L_eta_hat, 2)
+    c_star = 0.5 * c_eta * np.exp(-0.5 * L_norm2**2)    
+    log_d = np.log(nodes_number)
+    
+    
+     #  check the concentration bounds
+  #  bound = (1 / c_star) * np.sqrt(log_d /number_samples)
+  #  error = np.linalg.norm(laplacian_etta_hat - laplacian_etta, ord='fro')/nodes_number
+  #  test1 = error<bound
+    
+
+    #Check theoreum 3.6
+    concentration_error_laplacian= np.linalg.norm(laplacian_etta_hat - laplacian_etta, ord=2)
+    test2 = ((max_eigenvalue+mass_parameter+etta_parameter)/(etta_parameter**2))*concentration_error_laplacian<1
+    
+    #check eigenvalues
+    eigvals = np.linalg.eigvalsh(laplacian_etta_hat)
+    test3 = np.min(eigvals)>0
+        
+    precision_matrix_hat = etta_parameter**2*(np.linalg.inv(etta_parameter*np.eye(nodes_number) - laplacian_etta_hat)) - etta_parameter*np.eye(nodes_number)
+    
+    #Lets estimate the forbenius norm for the laplacian and for the precision 
+         
+    forebenius_norm_error = np.linalg.norm( (precision_matrix_hat-precision_matrix) ,ord = "fro") #overall error
+    spectral_norm_error = np.linalg.norm((precision_matrix_hat-precision_matrix), ord=2) #square root of the maximum eigenvalue
+    
+
+    #Compare with the theoritical bound - check the number of n 
+
+    empirical_bound = forebenius_norm_error/nodes_number
+    theoritical_bound = 1*np.sqrt((np.log(nodes_number)*nodes_number**4)/(number_samples*(transition_prob**4)))
+    test1 = empirical_bound<=theoritical_bound
+    
+    heat_map_matrix.loc[heat_map_matrix['Eta_param'] == eta, 'Forbenius error'] = forebenius_norm_error
+    heat_map_matrix.loc[heat_map_matrix['Eta_param'] == eta, 'Spectral error'] = spectral_norm_error
+    
+    
+    mask = np.isclose(heat_map_matrix['Eta_param'], eta) 
+    heat_map_matrix.loc[mask, 'Forbenius error'] = forebenius_norm_error 
+    heat_map_matrix.loc[mask, 'Spectral error'] = spectral_norm_error
+    
+    if test1 and test2 and test3:
+        heat_map_matrix.loc[mask, 'TheoriticaL_q'] = 1
+
+
+          
+heatmap_data = heat_map_matrix[['Eta_param', 'Forbenius error', 'TheoriticaL_q']].to_numpy()
+
+plt.imshow(heatmap_data, aspect='auto')
+plt.colorbar(label='Value')
+plt.xlabel('Columns')
+plt.ylabel('Rows')
+plt.title('Heatmap of Eta_param, Forbenius, TheoriticaL_q')
+plt.show()          
+    
+heat_map_matrix = heat_map_matrix.sort_values(by='Forbenius error')
+heat_map_matrix[heat_map_matrix['TheoriticaL_q'] == 1]
+
+
+plt.scatter(
+    heat_map_matrix[heat_map_matrix['TheoriticaL_q'] == 1]['Eta_param'],
+    heat_map_matrix[heat_map_matrix['TheoriticaL_q'] == 1]['Forbenius error'],
+    color='black'
+)
+plt.xlabel('Eta_param')
+plt.ylabel('Forbenius')
+plt.title('Point Eta parameter versus Forbenius error')
+plt.show()
+
+
+df = heat_map_matrix.sort_values('Eta_param')  # ensure ordered
+x = df['Eta_param'].to_numpy()
+y = df['Forbenius error'].to_numpy()
+q0 = (df['TheoriticaL_q'] == 0).to_numpy()
+
+fig, ax = plt.subplots()
+ax.scatter(x, y)
+ax.set_xlabel('Eta_param')
+ax.set_ylabel('Forbenius error')
+ax.set_title('Error vs Eta with q=0 shaded')
+
+# shade contiguous regions where TheoriticaL_q == 0
+dx = np.median(np.diff(np.unique(x))) if len(np.unique(x)) > 1 else 0.5
+i = 0
+while i < len(x):
+    if q0[i]:
+        j = i
+        while j < len(x) and q0[j]:
+            j += 1
+        ax.axvspan(x[i] - dx/2, x[j-1] + dx/2, alpha=0.15)
+        i = j
+    else:
+        i += 1
+
+plt.show()
+
+
+
+#---------------------------------------------------------------------------------------------reconstruct Laplacian ---------------------------
+
 
 #recover the laplacian matrix through the precision hat 
 #reconstruct the graph using the laplacian 
