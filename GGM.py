@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug 12 18:21:58 2025
-
-@author: maria
-"""
-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
 Created on Tue Aug 12 16:30:19 2025
 
 @author: maria
@@ -38,10 +30,10 @@ seed = 1042 # set seed for reproducibility
 #Create a random graph using networkx
 
 # Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 20 # Laplacian_matrix.shape[1] # number of nodes 
+nodes_number = 10 # Laplacian_matrix.shape[1] # number of nodes 
 transition_prob = 0.25 # probability of # of edges per node (we keep it high so we have less disconnected samples)
 
-np.log(20)/20
+np.log(nodes_number)/nodes_number
 
 er_igraph = nx.erdos_renyi_graph(n=nodes_number, p=transition_prob,seed = 1042)
 nx.is_connected(er_igraph)#check connectivity 
@@ -92,14 +84,14 @@ print(laplacian_matrix)
 
 #Check 
 
-number_samples = 7700000
+number_samples = 400000
 ((nodes_number**4)*np.log(nodes_number))/(transition_prob**2)
 number_samples
 number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
 
 
 mass_parameter = 1# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
-etta_parameter = 0.5 # smoothing parameter 
+etta_parameter = 0.6 # smoothing parameter 
 
 fixed_node = 0 # at least one node equal to zero Dirichlet boundary condition 
 
@@ -240,24 +232,13 @@ print("Min eig of (eta I - L_eta):", np.min(eigvals))
 #check the spectral norm error of the graph laplacian 
 # evaluate at the precision matrix 
 
-eta_parameters = np.arange(0.1,20,1)
+eta_parameters = np.arange(0.1,20,0.5)
 heat_map_matrix = pd.DataFrame({'Eta_param': eta_parameters,'Spectral error':0,'Forbenius error':0, 'TheoriticaL_q':0})
 
 eta= 4.1
 seed = 1042 
 ss = np.random.SeedSequence(seed)  
 children = ss.spawn(len(eta_parameters))
-
-
-
-#Compute the precision matrix
-precision_matrix = laplacian_matrix + mass_parameter*np.eye(nodes_number) #precision matrix
-ovariance_matrix = np.linalg.inv(precision_matrix)
-
-ovariance_matrix[1,:]
-precision_matrix[1,:]
-
-
     
 for k, eta in enumerate(eta_parameters):
     print(eta)
@@ -266,14 +247,21 @@ for k, eta in enumerate(eta_parameters):
     etta_parameter = eta # smoothing parameter 
 
 
+    #Compute the precision matrix
+    precision_matrix = laplacian_matrix + mass_parameter*np.eye(nodes_number) #precision matrix
+    covariance_matrix = np.linalg.inv(precision_matrix)
+
+    covariance_matrix[1,:]
+    precision_matrix[1,:]
 
     covariance_matrix_Y = etta_parameter*np.eye(nodes_number)
      
     #generate mutliple samples from Sigma
     x_samples = rng.multivariate_normal(mean = np.zeros(nodes_number),cov= covariance_matrix, size = number_samples)
+    x_samples.shape
 
     y_samples = rng.multivariate_normal(mean = np.zeros(nodes_number), cov= covariance_matrix_Y,size = number_samples)
- 
+    y_samples.shape
 
     #Create the Laplacian matrix from the fourier analysis 
     laplacian_etta = np.linalg.inv(covariance_matrix + (1/etta_parameter)* np.eye(laplacian_matrix.shape[0]))
@@ -347,8 +335,9 @@ for k, eta in enumerate(eta_parameters):
         heat_map_matrix.loc[mask, 'TheoriticaL_q'] = 1
 
 
-heat_map_matrix.to_csv('eta_parameter_n20.csv', index=False)
-         
+heat_map_matrix.to_csv('eta_parameter_n10.csv', index=False)
+
+          
 heatmap_data = heat_map_matrix[['Eta_param', 'Forbenius error', 'TheoriticaL_q']].to_numpy()
 
 plt.imshow(heatmap_data, aspect='auto')
@@ -373,7 +362,6 @@ plt.title('Point Eta parameter versus Forbenius error')
 plt.show()
 
 
-
 df = heat_map_matrix.sort_values('Eta_param')  # ensure ordered
 x = df['Eta_param'].to_numpy()
 y = df['Forbenius error'].to_numpy()
@@ -383,9 +371,9 @@ fig, ax = plt.subplots()
 ax.scatter(x, y, color='black')  # black points
 ax.set_xlabel(r'$\eta$ parameter')
 ax.set_ylabel('Forbenius error')
-ax.set_title(r'Presicion concentration error against $\eta$ parameter')
+ax.set_title(r'ALA with $\eta$ regions')
 
-
+# Shade contiguous regions where q=1
 dx = np.median(np.diff(np.unique(x))) if len(np.unique(x)) > 1 else 0.5
 i = 0
 while i < len(x):
@@ -393,20 +381,135 @@ while i < len(x):
         j = i
         while j < len(x) and q1[j]:
             j += 1
+        # shaded area
         ax.axvspan(x[i] - dx/2, x[j-1] + dx/2, color='orange', alpha=0.3)
+        # dashed borders
         ax.axvline(x[i] - dx/2, color='orange', linestyle='--')
         ax.axvline(x[j-1] + dx/2, color='orange', linestyle='--')
         i = j
     else:
         i += 1
 
-# Text box instead of legend dot
-ax.text(
-    0.98, 0.95, r'$n = 10$',
-    transform=ax.transAxes,
-    ha='right', va='top',
-    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3')
-)
-
 plt.show()
 
+
+
+
+
+
+#---------------------------------------------------------------------------------------------reconstruct Laplacian ---------------------------
+
+
+#recover the laplacian matrix through the precision hat 
+#reconstruct the graph using the laplacian 
+
+#Recover the laplacian through the precisio matrix 
+
+laplacian_GFF  = precision_matrix_hat - mass_parameter*np.eye(nodes_number)
+
+def reconstruct_graph_from_laplacian(laplacian_GFF, threshold=1e-3):
+
+    d = laplacian_GFF.shape[0]
+    A_est = np.zeros_like(laplacian_GFF)
+
+    for i in range(d):
+        for j in range(i + 1, d):
+            if laplacian_GFF[i, j] < -threshold:
+                A_est[i, j] = A_est[j, i] = 1
+
+    G = nx.from_numpy_array(A_est)
+    return G
+
+# Example usage:
+G_hat = reconstruct_graph_from_laplacian(laplacian_GFF, threshold=1e-3)
+
+# Draw it
+plt.figure(figsize=(6, 6))
+nx.draw(G_hat, with_labels=True, node_color="skyblue", edge_color="gray")
+plt.title("Reconstructed Erdős–Rényi Graph from Laplacian")
+plt.show()
+
+
+np.round(laplacian_GFF, decimals=0)
+laplacian_matrix
+
+# look at the eigenvalues of laplacian - properties of the graph (0s - connectivity)- check eigenvalue 
+#Fiedler value - second eigenvalue - tells you how conencted the graph is 
+# average degree of the matrix - global property of Laplacian 
+
+eigenvalues_true = np.linalg.eigvalsh(laplacian_matrix)
+eigenvalues_sorted_true = np.sort(eigenvalues_true)
+
+# Fiedler value is the second smallest eigenvalue
+fiedler_value_true = eigenvalues_sorted_true[1]
+fiedler_value_true
+
+# Average degree is the mean of the diagonal (since L_ii = degree of node i)
+average_degree = np.mean(np.diag(laplacian_matrix))
+average_degree
+
+eigenvalues_GFF = np.linalg.eigvalsh(laplacian_GFF)
+eigenvalues_sorted_GFF = np.sort(eigenvalues_GFF)
+
+# Fiedler value is the second smallest eigenvalue
+fiedler_value_GFF = eigenvalues_sorted_GFF[1]
+fiedler_value_GFF, fiedler_value_true
+
+# Average degree is the mean of the diagonal (since L_ii = degree of node i)
+average_degree_GFF = np.round(np.mean(np.diag(laplacian_GFF)),decimals=0)
+average_degree_GFF, average_degree
+
+
+
+#Compare with the vanilla estimator 
+
+# Fird we need to estimate the characteristic function
+def psi_n(u, X):
+    return np.mean(np.exp(1j * X @ u))
+
+# Parameter U
+R = np.linalg.norm(covariance_matrix, ord=2) 
+U = R**(-0.5)  # improvised choise
+
+# estitmatorr
+cov_BMT = np.zeros((nodes_number, nodes_number))
+e = np.eye(nodes_number)
+
+# Diagonal entries
+for i in range(nodes_number):
+    psi_val = psi_n(U * e[i], x_samples)
+    cov_BMT[i, i] = -2 / U**2 * np.real(np.log(psi_val))
+
+# Off-diagonal entries
+for i in range(nodes_number):
+    for j in range(i + 1, nodes_number):
+        t = U * (e[i] + e[j]) / np.sqrt(2)
+        psi_val = psi_n(t, x_samples)
+        cov_BMT[i, j] = -2 / U**2 * np.real(np.log(psi_val)) - 0.5 * (cov_BMT[i, i] + cov_BMT[j, j])
+        cov_BMT[j, i] = cov_BMT[i, j] 
+
+# Step 4: Compute the precision matrix estimate (Moore-Penrose inverse)
+precision_BMT = np.linalg.pinv(cov_BMT)
+
+precision_BMT
+
+np.linalg.norm( (precision_matrix_hat-precision_matrix) ,ord = "fro")
+np.linalg.norm( (precision_BMT-precision_matrix) ,ord = "fro") #overall error
+
+np.linalg.norm( (precision_matrix_hat-precision_matrix) , ord=2) 
+np.linalg.norm((precision_BMT-precision_matrix), ord=2) 
+
+#reconstruct laplacian 
+
+np.round(precision_matrix_hat - mass_parameter*np.eye(nodes_number), decimals=0)
+laplacian_vanilla = np.round(precision_BMT - mass_parameter*np.eye(nodes_number), decimals=0)
+average_degree_laplacian_vanilla = np.round(np.mean(np.diag(laplacian_vanilla)),decimals=0)
+average_degree_laplacian_vanilla
+
+
+eigenvalues_vanilla = np.linalg.eigvalsh(laplacian_vanilla)
+eigenvalues_sorted_vanilla = np.sort(eigenvalues_vanilla)
+
+# Fiedler value is the second smallest eigenvalue
+fiedler_value_vanilla = eigenvalues_sorted_vanilla[1]
+fiedler_value_GFF, fiedler_value_true,fiedler_value_vanilla
