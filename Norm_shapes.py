@@ -6,7 +6,7 @@ fig, (ax0, ax1, ax2,ax3) = plt.subplots(1, 4, figsize=(14, 4))
 def clean_axes(ax):
     ax.set_aspect("equal")
     ax.set_xlim(-1.2, 1.2)
-    ax.set_ylim(-1.6, 1.2) 
+    ax.set_ylim(-1.6, 1.2)  
     ax.set_xticks([])
     ax.set_yticks([])
     for spine in ax.spines.values():
@@ -28,8 +28,8 @@ r = (np.abs(c)**0.5 + np.abs(s)**0.5)**(-1/0.5)
 x0, y0 = r*c, r*s
 ax0.plot(x0, y0, color="#3776ab", lw=2)
 clean_axes(ax0)
-ax0.set_title(r"$p=1$", fontsize=16, pad=6)
-ax0.text(1, -1.45, r"$\|x\|_{0.5}=(\sum |x_i|^{0.5})^2$", ha="center", fontsize=14)
+ax0.set_title(r"$p=0.5$", fontsize=16, pad=6)
+ax0.text(1, -1.45, r"$\|x\|_{0.5}=(\sum {\sqrt{|x_i|}})^2$", ha="center", fontsize=14)
 
 
 #ℓ1 
@@ -48,7 +48,7 @@ x2, y2 = r*c, r*s
 ax2.plot(x2, y2, color="#3776ab", lw=2)
 clean_axes(ax2)
 ax2.set_title(r"$p=2$", fontsize=16, pad=6)
-ax2.text(0.8, -1.45, r"$\|x\|_{2}=(\sum x_i^{2})^{1/2}$", ha="center", fontsize=14)
+ax2.text(0.8, -1.45, r"$\|x\|_{2}=\sqrt{\sum x_i^{2}}$", ha="center", fontsize=14)
 
 # ℓ∞ inf
 x3 = np.array([-1, 1, 1, -1, -1])
@@ -61,4 +61,3 @@ ax3.text(0.8, -1.45, r"$\|x\|_{\infty}=\max |x_i|$", ha="center", fontsize=14)
 plt.suptitle(r"$L_p$ norms", fontsize=20, y=0.98)
 plt.tight_layout(rect=[0, 0, 1, 0.95])
 plt.show()
-
