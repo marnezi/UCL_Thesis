@@ -6,7 +6,7 @@ fig, (ax0, ax1, ax2,ax3) = plt.subplots(1, 4, figsize=(14, 4))
 def clean_axes(ax):
     ax.set_aspect("equal")
     ax.set_xlim(-1.2, 1.2)
-    ax.set_ylim(-1.6, 1.2)  # extra room for text
+    ax.set_ylim(-1.6, 1.2) 
     ax.set_xticks([])
     ax.set_yticks([])
     for spine in ax.spines.values():
@@ -61,3 +61,4 @@ ax3.text(0.8, -1.45, r"$\|x\|_{\infty}=\max |x_i|$", ha="center", fontsize=14)
 plt.suptitle(r"$L_p$ norms", fontsize=20, y=0.98)
 plt.tight_layout(rect=[0, 0, 1, 0.95])
 plt.show()
+
