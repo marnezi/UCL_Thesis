@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 
-# πarameters 
+# parameters 
 d = 8          # number of nodes
 p = 0.35       # probability of edge creation
 seed = 7       # random seed for reproducibility
