@@ -22,21 +22,23 @@ gc.collect()
 
 seed = 1042 # set seed for reproducibility
 
-# Case 1: we know the Covariance matrix and we are trying to see how well our estimation holds 
-#Create a random graph using networkx
+mem = psutil.virtual_memory()
+print(f"Total RAM: {mem.total / 1024**3:.2f} GB")
+print(f"Available RAM: {mem.available / 1024**3:.2f} GB")
+
 
 # Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 25 # Laplacian_matrix.shape[1] # number of nodes 
-transition_prob = 0.25 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+nodes_number = 20 
+transition_prob = 0.25
 
 np.log(nodes_number)/nodes_number
 
 er_igraph = nx.erdos_renyi_graph(n=nodes_number, p=transition_prob,seed = 1042)
-nx.is_connected(er_igraph)#check connectivity 
+nx.is_connected(er_igraph) #check connectivity 
 
 pos = nx.spring_layout(er_igraph, seed=seed)
 
-nx.draw(er_igraph, pos=pos, with_labels=True, edge_color='gray', node_size=800, font_size=12)
+nx.draw(er_igraph, pos=pos, with_labels=True, edge_color='gray', node_size=800,node_color="orange", font_size=12)
 plt.title("Erdős–Rényi Graph")
 plt.show()
 
@@ -80,7 +82,7 @@ print(laplacian_matrix)
 
 #Check 
 
-number_samples = 21000000
+number_samples = 8000000
 ((nodes_number**4)*np.log(nodes_number))/(transition_prob**2)
 number_samples
 number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
@@ -92,19 +94,12 @@ mem = psutil.virtual_memory()
 print(f"Total RAM: {mem.total / 1024**3:.2f} GB")
 print(f"Available RAM: {mem.available / 1024**3:.2f} GB")
 
-mass_parameter = 1# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
-etta_parameter = 0.6 # smoothing parameter 
+# Setting the configuration for the Erdos-Reyni graph
+
+mass_parameter = 1 # mass parameter
+etta_parameter = 0.5 # smoothing parameter 
 
 fixed_node = 0 # at least one node equal to zero Dirichlet boundary condition 
-
-# Step 1: Simulate a Gaussian Free Field of a graph many times (independent graphs) and 
-# estimate the true Sigma
-# now following the methodology estimate the estimate of Sigma -1 (hat)
-# check how close they are 
-# look at the bounds and which variables have the most impact on the consentration 
-# check how good is the recovering procedure 
-# what is the error estimate - what influence it the most - plots 
-
 
 #Compute the precision matrix
 precision_matrix = laplacian_matrix + mass_parameter*np.eye(nodes_number) #precision matrix
@@ -117,7 +112,6 @@ covariance_matrix_Y = etta_parameter*np.eye(nodes_number)
 
 # check the conditional number
 np.linalg.cond(precision_matrix)
-
 
 def phi_t(t):
     
@@ -166,7 +160,7 @@ laplacian_etta
 #check the spectral norm error of the graph laplacian 
 # evaluate at the precision matrix 
 
-eta_parameters = np.arange(0.1,20,0.5)
+eta_parameters = np.arange(0.5, 20.5, 0.5)
 heat_map_matrix = pd.DataFrame({'Eta_param': eta_parameters,'Spectral error':0,'Forbenius error':0, 'TheoriticaL_q':0})
 
 eta= 4.1
@@ -275,11 +269,15 @@ for k, eta in enumerate(eta_parameters):
         heat_map_matrix.loc[mask, 'TheoriticaL_q'] = 1
 
 
-heat_map_matrix.to_csv('eta_parameter_n10.csv', index=False)
+heat_map_matrix.to_csv('eta_parameter_n20.csv', index=False)
 
-          
+ 
+heat_map_matrix[heat_map_matrix['TheoriticaL_q'] == 1]
+heat_map_matrix.sort_values(by="Forbenius error")
+
 heatmap_data = heat_map_matrix[['Eta_param', 'Forbenius error', 'TheoriticaL_q']].to_numpy()
 
+          
 plt.imshow(heatmap_data, aspect='auto')
 plt.colorbar(label='Value')
 plt.xlabel('Columns')
@@ -302,6 +300,7 @@ plt.title('Point Eta parameter versus Forbenius error')
 plt.show()
 
 
+
 df = heat_map_matrix.sort_values('Eta_param')  # ensure ordered
 x = df['Eta_param'].to_numpy()
 y = df['Forbenius error'].to_numpy()
@@ -310,10 +309,10 @@ q1 = (df['TheoriticaL_q'] == 1).to_numpy()
 fig, ax = plt.subplots()
 ax.scatter(x, y, color='black')  # black points
 ax.set_xlabel(r'$\eta$ parameter')
-ax.set_ylabel('Forbenius error')
-ax.set_title(r'ALA with $\eta$ regions')
+ax.set_ylabel('Forbenius error $||\hat{\Sigma}^{-1} - \Sigma^{-1}||/d$')
+ax.set_title(r'Concentration error against $\eta$ parameter')
 
-# Shade contiguous regions where q=1
+
 dx = np.median(np.diff(np.unique(x))) if len(np.unique(x)) > 1 else 0.5
 i = 0
 while i < len(x):
@@ -321,15 +320,19 @@ while i < len(x):
         j = i
         while j < len(x) and q1[j]:
             j += 1
-        # shaded area
         ax.axvspan(x[i] - dx/2, x[j-1] + dx/2, color='orange', alpha=0.3)
-        # dashed borders
         ax.axvline(x[i] - dx/2, color='orange', linestyle='--')
         ax.axvline(x[j-1] + dx/2, color='orange', linestyle='--')
         i = j
     else:
         i += 1
 
+# Text box instead of legend dot
+ax.text(
+    0.98, 0.95, r'$n = 20$',
+    transform=ax.transAxes,
+    ha='right', va='top',
+    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3')
+)
+
 plt.show()
-
-
