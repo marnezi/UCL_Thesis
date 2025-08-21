@@ -25,4 +25,3 @@ out_path = "erdos_renyi_orange_nodes_black_edges.png"
 plt.savefig(out_path, dpi=200, bbox_inches="tight")
 plt.show()
 
-out_path
