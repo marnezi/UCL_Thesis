@@ -10,13 +10,14 @@ from tqdm import tqdm
 import itertools
 
 seed = 1042 # set seed for reproducibility
+np.random.seed(seed) 
 
 # Case 1: we know the Covariance matrix and we are trying to see how well our estimation holds 
 #Create a random graph using networkx
 
 # Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 5 # Laplacian_matrix.shape[1] # number of nodes 
-transition_prob = 0.5 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+nodes_number = 20 # Laplacian_matrix.shape[1] # number of nodes 
+transition_prob = 0.25 # probability of # of edges per node (we keep it high so we have less disconnected samples)
 
 np.log(nodes_number)/nodes_number
 
@@ -31,7 +32,7 @@ plt.show()
 
 #  Add random weights to edges
 for u, v in er_igraph.edges():
-    er_igraph[u][v]['weight'] = np.random.uniform(0.5, 2.0)  # weight in [0.5, 2.0]
+    er_igraph[u][v]['weight'] = np.random.uniform(0, 10) 
 
 # Step 3: Get weighted adjacency matrix
 adjacent_matrix = nx.to_numpy_array(er_igraph, weight='weight')
@@ -67,7 +68,7 @@ plt.show()
 
 #Check 
 
-number_samples = 100000
+number_samples = 2000000
 ((nodes_number**4)*np.log(nodes_number))/(transition_prob**2)
 number_samples
 number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
