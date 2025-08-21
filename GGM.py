@@ -78,8 +78,6 @@ number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
 mass_parameter = 1# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
 etta_parameter = 0.5 # smoothing parameter 
 
-fixed_node = 0 # at least one node equal to zero Dirichlet boundary condition 
-
 # Step 1: Simulate a Gaussian Free Field of a graph many times (independent graphs) and 
 # estimate the true Sigma
 # now following the methodology estimate the estimate of Sigma -1 (hat)
@@ -330,3 +328,4 @@ eigenvalues_sorted_vanilla = np.sort(eigenvalues_vanilla)
 fiedler_value_vanilla = eigenvalues_sorted_vanilla[1]
 fiedler_value_GFF, fiedler_value_true,fiedler_value_vanilla
 average_degree_GFF, average_degree,average_degree_laplacian_vanilla
+
