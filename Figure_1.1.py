@@ -1,24 +1,35 @@
-import numpy as np 
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Aug 16 15:10:59 2025
+
+@author: Maria
+"""
+
 import matplotlib.pyplot as plt
 import networkx as nx
 
-seed = 7 # set seed for reproducibility
+# πarameters 
+d = 8          # number of nodes
+p = 0.35       # probability of edge creation
+seed = 7       # random seed for reproducibility
 
-# Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 8 
-transition_prob = 0.4
+# graph
+erdos_reyni_graph = nx.erdos_renyi_graph(n=d, p=p, seed=seed)
 
-#check the prob. number
-transition_prob > np.log(nodes_number)/nodes_number
+# Layout for visualization
+pos = nx.spring_layout(erdos_reyni_graph, seed=seed)
 
-#construct the Erdos-Reyni simple with 8 nodes
-er_igraph = nx.erdos_renyi_graph(n=nodes_number, p=transition_prob,seed = seed)
-nx.is_connected(er_igraph)#check connectivity 
+# Draw
+plt.figure(figsize=(5, 5))
+nx.draw_networkx_edges(erdos_reyni_graph, pos, edge_color="black", width=1.5)
+nx.draw_networkx_nodes(erdos_reyni_graph, pos, node_color="orange", edgecolors="black", linewidths=2, node_size=600)
+nx.draw_networkx_labels(erdos_reyni_graph, pos, font_color="black", font_size=12)
 
-pos = nx.spring_layout(er_igraph, seed=seed)
+plt.axis("off")
+plt.tight_layout()
 
-nx.draw(er_igraph, pos=pos, with_labels=True, node_color = 'orange',width = 3,
-            edge_color='black', node_size=1000, font_size=16, edgecolors = 'black')
+out_path = "erdos_renyi_orange_nodes_black_edges.png"
+plt.savefig(out_path, dpi=200, bbox_inches="tight")
 plt.show()
-    
 
+out_path
