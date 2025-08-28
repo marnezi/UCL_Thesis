@@ -9,14 +9,14 @@ from matplotlib import cm
 from tqdm import tqdm
 import itertools
 
-seed = 1042 # set seed for reproducibility
+seed = 1042 # set seed for reproducibility - keep fixed
 
 # Case 1: we know the Covariance matrix and we are trying to see how well our estimation holds 
 #Create a random graph using networkx
 
 # Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 5 # Laplacian_matrix.shape[1] # number of nodes 
-transition_prob = 0.5 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+nodes_number = 5 #  number of nodes - change this accordingly to 5,10,20
+transition_prob = 0.5 # probability of # of edges per node (we keep it high so we have less disconnected samples) - change this accordingly to 0.5,0.25,0.25
 
 np.log(nodes_number)/nodes_number
 
@@ -328,4 +328,5 @@ eigenvalues_sorted_vanilla = np.sort(eigenvalues_vanilla)
 fiedler_value_vanilla = eigenvalues_sorted_vanilla[1]
 fiedler_value_GFF, fiedler_value_true,fiedler_value_vanilla
 average_degree_GFF, average_degree,average_degree_laplacian_vanilla
+
 
