@@ -71,11 +71,11 @@ plt.show()
 #laplacian 
 print(laplacian_matrix)
 
-#Configuration settigns
+#Configuration settings
 
 #Check 
 
-number_samples = 8000000
+number_samples = 8000000 # change accordingly 
 ((nodes_number**4)*np.log(nodes_number))/(transition_prob**2)
 number_samples
 number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
