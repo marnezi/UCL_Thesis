@@ -20,9 +20,9 @@ print(f"Total RAM: {mem.total / 1024**3:.2f} GB")
 print(f"Available RAM: {mem.available / 1024**3:.2f} GB")
 
 
-# Step 1: Create a Erdos Reyni graph to test 
-nodes_number = 20 
-transition_prob = 0.25
+# Step 1: Create an Erdos Reyni graph to test 
+nodes_number = 20 #change accordingly to 5,10,20
+transition_prob = 0.25 # change accordingly to 0.5,0.25,0.25
 
 np.log(nodes_number)/nodes_number
 
