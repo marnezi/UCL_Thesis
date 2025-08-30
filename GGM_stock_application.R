@@ -117,6 +117,7 @@ final_dt <- data.table()
 pairs <- combn(ncol(rank2uniform), 2)
 
 k=1
+
 for (k in seq_len(ncol(pairs))) {
   print(k)
   i <- pairs[1, k]
@@ -132,7 +133,8 @@ for (k in seq_len(ncol(pairs))) {
   
 }
 
-saveRDS(final_dt,'final_dt.rds')
+#saveRDS(final_dt,'final_dt.rds')
+final_dt <- readRDS('final_dt.rds')
 
 perc <- final_dt[, .N, by = Copula]
 perc[Copula == 'Gumbel']$N <- perc[Copula == 'Gumbel']$N +perc[Copula == 'Survival Gumbel']$N 
@@ -143,6 +145,54 @@ perc
 
 final_dt[, .N, by = Copula][, perc := 100 * N / sum(N)]
 
+#visualize some of the pairs 
+
+#Gaussian case 
+k = 1 
+i <- pairs[1, k]
+j <- pairs[2, k]
+fit <- BiCopSelect(rank2uniform[[i]], rank2uniform[[j]], familyset = 0:5, selectioncrit = "AIC",indeptest = TRUE, level = 0.05)
+
+rho_from_tau <- BiCopTau2Par(family = 1, tau = fit$tau)
+u <- BiCopSim(1000, family = 1, par = rho_from_tau)
+
+
+plot1 <- ggplot()+geom_point(aes(JPM,XOM),rank2uniform[,c('JPM','XOM')])+theme_minimal()+
+  geom_point(aes(u[,1],u[,2]), color = 'orange')+
+  ggtitle('Gaussian Copula')
+
+#Frank case 
+final_dt
+
+k = 2 
+i <- pairs[1, k]
+j <- pairs[2, k]
+fit <- BiCopSelect(rank2uniform[[i]], rank2uniform[[j]], familyset = 0:5, selectioncrit = "AIC",indeptest = TRUE, level = 0.05)
+
+u <- BiCopSim(1000, family = 1, par = fit$par)
+
+
+plot2 <- ggplot()+geom_point(aes(JPM,CVX),rank2uniform[,c('JPM','CVX')])+theme_minimal()+
+  geom_point(aes(u[,1],u[,2]), color = 'orange')+
+  ggtitle('Frank Copula')
+plot2
+
+#t case 
+final_dt
+
+k = 3
+i <- pairs[1, k]
+j <- pairs[2, k]
+fit <- BiCopSelect(rank2uniform[[i]], rank2uniform[[j]], familyset = 0:5, selectioncrit = "AIC",indeptest = TRUE, level = 0.05)
+
+u <- BiCopSim(1000, family = 2,  par = fit$par, par2 = fit$par2)
+
+plot3 <- ggplot()+geom_point(aes(JPM,PG),rank2uniform[,c('JPM','PG')])+theme_minimal()+
+  geom_point(aes(u[,1],u[,2]), color = 'orange')+
+  ggtitle('t-Copula')
+plot3
+
+ggpubr::ggarrange(plot1,plot2,plot3,ncol = 3,nrow =1 )
 
 
 # Assume normality - apply double fourier estimator -----------------------
@@ -223,3 +273,4 @@ average_connectiivty <- mean(degree_matrix)
 #fiedler   
 fielder <- eigen(laplacian_etta_hat)$values[order(eigen(laplacian_etta_hat)$values)][2]
 fielder;average_connectiivty
+
