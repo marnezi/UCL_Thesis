@@ -7,9 +7,12 @@ library(ggplot2)
 library(MASS)
 library(plotly)
 library(MVN)
+library(MASS)
 library(tseries)
 library(igraph)
 library(ggraph)
+library(scales)
+library(fitdistrplus)
 
 gc()#clean unnecessary data 
 
@@ -38,43 +41,6 @@ closing_prices_df_plot[, Date := as.Date(Date)]
  
 closing_prices_df_plot[, variable := as.factor(variable)]
 
-# Plot with explicit group
-closing_prices_df_plot[, value_plot := fifelse(variable == "C", value / 10, value)] # distorts the plots
-
-ggplot(closing_prices_df_plot, aes(Date, value_plot, color = variable, group = variable)) +
-  geom_line(size = 0.7, alpha = 0.9) +
-  scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
-  scale_y_continuous(
-    labels = scales::dollar_format(prefix = "$"),
-    sec.axis = sec_axis(~ . * 10, name = "Closing price for C ($)")
-  ) +
-  labs(
-    title = "Stock Closing Prices (2003–2007)",
-    subtitle = "Selected S&P 500 Companies",
-    x = "Date", y = "Closing price ($)", color = "Ticker"
-  ) +
-  theme_minimal(base_size = 14)
-
-
-cor(closing_prices_df[,-1])
-
-# Create interactive plot
-p <- ggplot(closing_prices_df_plot, aes(x = Date, y = value, color = variable, group = variable, text = variable)) +
-  geom_line(size = 0.7, alpha = 0.9) +
-  labs(
-    title = "Interactive Stock Closing Prices (2015–2019)",
-    x = "Date",
-    y = "Closing Price (USD)",
-    color = "Ticker"
-  ) +
-  theme_minimal()
-
-# Convert to interactive plotly object
-interactive_plot <- ggplotly(p, tooltip = c("x", "y", "text"))
-
-# Display the plot
-interactive_plot
-
 # transform the prices into log returns
 
 closing_prices_logr <- melt(closing_prices_df,id.vars = 'Date')
@@ -86,6 +52,38 @@ closing_prices_logr <- dcast(closing_prices_logr,formula = Date ~ variable, valu
 closing_prices_logr <- na.omit(closing_prices_logr)
 closing_prices_logr_qq <- melt(closing_prices_logr,id.vars = 'Date')
 
+# check stationarity 
+
+closing_prices_df_plot <- melt(closing_prices_logr,id.vars = 'Date')
+closing_prices_df_plot[, Date := as.Date(Date)]
+
+closing_prices_df_plot[, variable := as.factor(variable)]
+
+
+pallete_col <- colorRampPalette(c("navy", "orange"))(23)
+
+p <- ggplot(closing_prices_df_plot, aes(x = Date, y = value, color = variable, group = variable, text = variable)) +
+  geom_line(size = 0.3) +
+  scale_x_date(date_breaks = "6 months", date_labels = "%Y-%m") +  
+  labs(
+    x = "Date",
+    y = "Standardized log-returns",
+    color = "Ticket") +theme_minimal()+scale_color_manual(values = pallete_col)+  theme(
+      legend.position = "top",
+      legend.direction = "horizontal",
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12),
+      legend.key.size = unit(1.2, "lines"), 
+      axis.title = element_text(size = 14),
+      axis.text = element_text(size = 12),
+      axis.title.x = element_blank()
+    ) +
+  guides(colour = guide_legend(nrow = 2, byrow = TRUE))
+p
+
+
+# Evaluate marginals ------------------------------------------------------
+
 # Q-Q- plots 
 
 ggplot(closing_prices_logr_qq[variable %in% c(fav_stocks[20:22])], aes(sample = value)) +
@@ -96,31 +94,55 @@ ggplot(closing_prices_logr_qq[variable %in% c(fav_stocks[20:22])], aes(sample = 
   labs(title = "Q-Q Plots of Log Returns by Stock",
        x = "Theoretical Quantiles", y = "Sample Quantiles")
 
-shapiro_results <- sapply(closing_prices_logr[,-1], function(x) {shapiro.test(x)$p.value})
-shapiro_results[1]
-
-#test stationarity 
-
-#plot the log returns 
-closing_prices_df_plot <- melt(closing_prices_logr,id.vars = 'Date')
-closing_prices_df_plot[, Date := as.Date(Date)]
-
-closing_prices_df_plot[, variable := as.factor(variable)]
+shapiro_results_pvalue <- sapply(closing_prices_logr[,-1], function(x) {shapiro.test(x)$p.value})
+shapiro_results_W <- sapply(closing_prices_logr[,-1], function(x) {shapiro.test(x)$statistic})
+shapiro_results <- data.table(data.frame(shapiro_results_pvalue),keep.rownames = T)
+shapiro_results$W <- shapiro_results_W
+setnames(shapiro_results,c('ticket','p-value','W'))
+shapiro_results
 
 
-ggplot(closing_prices_df_plot, aes(Date, value, color = variable, group = variable)) +
-  geom_line(size = 0.7, alpha = 0.9) +
-  scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
-  scale_y_continuous(
-    labels = scales::dollar_format(prefix = "$"),
-    sec.axis = sec_axis(~ . * 10, name = "Closing price for C ($)")
-  ) +
-  labs(
-    title = "Stock Closing Prices (2003–2007)",
-    subtitle = "Selected S&P 500 Companies",
-    x = "Date", y = "Closing price ($)", color = "Ticker"
-  ) +
-  theme_minimal(base_size = 14)
+# Test dependence structure using copulas  --------------------------------
+
+library(VineCopula)
+
+#transform to uniform - ties are set to the average 
+
+rank2uniform <- closing_prices_logr[,-1][, lapply(.SD, function(col) {
+  rank(col, ties.method = "average") / (length(col) + 1)
+})]
+
+
+final_dt <- data.table()
+pairs <- combn(ncol(rank2uniform), 2)
+
+k=1
+for (k in seq_len(ncol(pairs))) {
+  print(k)
+  i <- pairs[1, k]
+  j <- pairs[2, k]
+  
+  fit <- BiCopSelect(rank2uniform[[i]], rank2uniform[[j]],
+                     familyset = 0:5, selectioncrit = "AIC",indeptest = TRUE, level = 0.05)
+  print(fit$family)
+  out_cop <- data.table(var_i = colnames(rank2uniform)[i],var_j = colnames(rank2uniform)[j],
+                        AIC   = fit$AIC,BIC   = fit$BIC,Copula = fit$familyname)
+  
+  final_dt <- rbind(final_dt,out_cop)
+  
+}
+
+saveRDS(final_dt,'final_dt.rds')
+
+perc <- final_dt[, .N, by = Copula]
+perc[Copula == 'Gumbel']$N <- perc[Copula == 'Gumbel']$N +perc[Copula == 'Survival Gumbel']$N 
+perc <- perc[Copula != 'Survival Gumbel']
+
+perc$percentage <- 100*perc$N/sum( perc$N)
+perc
+
+final_dt[, .N, by = Copula][, perc := 100 * N / sum(N)]
+
 
 
 # Assume normality - apply double fourier estimator -----------------------
@@ -200,8 +222,4 @@ average_connectiivty <- mean(degree_matrix)
 
 #fiedler   
 fielder <- eigen(laplacian_etta_hat)$values[order(eigen(laplacian_etta_hat)$values)][2]
-fielder
-
-# plot
-
-
+fielder;average_connectiivty
