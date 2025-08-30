@@ -26,13 +26,14 @@ nx.is_connected(er_igraph)#check connectivity
 
 pos = nx.spring_layout(er_igraph, seed=seed)
 
-nx.draw(er_igraph, pos=pos, with_labels=True, edge_color='gray',node_color="orange", node_size=800, font_size=12)
+nx.draw(er_igraph, pos=pos, with_labels=True, 
+        edge_color='gray',node_color="orange", node_size=800, font_size=12)
 plt.title("Erdős–Rényi Graph")
 plt.show()
 
 #  Add random weights to edges
 for u, v in er_igraph.edges():
-    er_igraph[u][v]['weight'] = np.random.uniform(0, 10) 
+    er_igraph[u][v]['weight'] = np.random.uniform(0.5, 1.5) 
 
 # Step 3: Get weighted adjacency matrix
 adjacent_matrix = nx.to_numpy_array(er_igraph, weight='weight')
@@ -42,7 +43,6 @@ degree_matrix = np.diag(np.sum(adjacent_matrix, axis=1))
 laplacian_matrix = degree_matrix - adjacent_matrix
 laplacian_matrix
 
-laplacian_matrix = nx.laplacian_matrix(er_igraph).toarray()
 max_eigenvalue = np.linalg.eigvals(laplacian_matrix).max()
 
 #Plot adjacency and degree matrix
@@ -66,11 +66,13 @@ plt.show()
 
 #Configuration settigns
 
-#Check 
-
+#choose a number for the samples 
 number_samples = 2000000
+
+#Check 
 ((nodes_number**4)*np.log(nodes_number))/(transition_prob**2)
-number_samples
+
+#Check theoritical quarantee
 number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
 
 mass_parameter = 1# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
@@ -326,8 +328,3 @@ eigenvalues_sorted_vanilla = np.sort(eigenvalues_vanilla)
 fiedler_value_vanilla = eigenvalues_sorted_vanilla[1]
 fiedler_value_GFF, fiedler_value_true,fiedler_value_vanilla
 average_degree_GFF, average_degree,average_degree_laplacian_vanilla
-
-
-
-
-
