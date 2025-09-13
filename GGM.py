@@ -280,7 +280,7 @@ def psi_n(u, X):
 
 # Parameter U
 R = np.linalg.norm(covariance_matrix, ord=2) 
-U = R**(-0.5)  # improvised choise
+U = R**(-0.5)  # improvised choice
 
 # estitmatorr
 cov_BMT = np.zeros((nodes_number, nodes_number))
@@ -328,5 +328,6 @@ eigenvalues_sorted_vanilla = np.sort(eigenvalues_vanilla)
 fiedler_value_vanilla = eigenvalues_sorted_vanilla[1]
 fiedler_value_GFF, fiedler_value_true,fiedler_value_vanilla
 average_degree_GFF, average_degree,average_degree_laplacian_vanilla
+
 
 
