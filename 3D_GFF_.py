@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt                      
 from matplotlib.ticker import FuncFormatter           
 
-# Lets define the graph settigns
+# Let's define the graph settings
 N  = 35 # this is the interior nodes (we should keep in mind that the exterior nodes will be set to zero)
 mu = 0 # massless case so Σ^{-1} =  L
 seed = 42
@@ -10,8 +10,8 @@ rng = np.random.default_rng(seed)
 
 # 1D Dirichlet Laplacian (tridiagonal -1, 2, -1)
 #The numbers 2 and –1 in the discrete Laplacian come from how the second derivative is approximated on a grid. 
-#Each interior point is compared to the average of its two neighbors: the central value gets a weight of 2, 
-#while each neighbor gets –1. This ensures the matrix correctly measures curvature and 
+#Each interior point is compared to the average of its two neighbours: the central value gets a weight of 2, 
+#while each neighbour gets –1. This ensures the matrix correctly measures curvature and 
 #makes the quadratic form correspond to the sum of squared differences between adjacent points
 
 # https://en.wikipedia.org/wiki/Discrete_Laplace_operator
@@ -34,9 +34,9 @@ print(laplacian[:10,:10])
 # precision matrix
 sigma_inv = np.array(laplacian, copy=True)
 
-# The laplacian matrix is a positive define and symmetric matrix 
-#  we want to sample from h: N(0,Σ) so we need the Σ
-sigma = np.linalg.inv(sigma_inv)   #this as we will saw later in the thesis is not a good practice as it can introduce instabilities but here we do it for the same of the plot
+# The Laplacian matrix is a positive definite and symmetric matrix 
+#  We want to sample from h: N(0, Σ,) so we need the Σ
+sigma = np.linalg.inv(sigma_inv)   #this, as we will see later in the thesis, is not a good practice as it can introduce instabilities, but here we do it for the sake of the plot
       
 h_sample = rng.multivariate_normal(mean=np.zeros(N*N), cov=sigma)
 points_interior_matrix = h_sample.reshape(N, N)
@@ -60,7 +60,7 @@ ax.set_zlabel("")
 
 ax.zaxis.set_major_formatter(FuncFormatter(lambda val, _: f"{val:.2f}"))
 
-# formating the line
+# formatting the line
 line_x = np.linspace(0, 1, len(x))
 line_y = np.linspace(0, 1, len(y))
 line_z = [ surface[i, i] for i in range(len(line_x))]
@@ -76,3 +76,4 @@ plt.show()
 
 
                                
+
