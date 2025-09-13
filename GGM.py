@@ -78,15 +78,6 @@ number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
 mass_parameter = 1# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
 etta_parameter = 0.5 # smoothing parameter 
 
-# Step 1: Simulate a Gaussian Free Field of a graph many times (independent graphs) and 
-# estimate the true Sigma
-# now following the methodology estimate the estimate of Sigma -1 (hat)
-# check how close they are 
-# look at the bounds and which variables have the most impact on the consentration 
-# check how good is the recovering procedure 
-# what is the error estimate - what influence it the most - plots 
-
-
 #Compute the precision matrix
 precision_matrix = laplacian_matrix + mass_parameter*np.eye(nodes_number) #precision matrix
 covariance_matrix = np.linalg.inv(precision_matrix)
@@ -117,13 +108,13 @@ laplacian_etta = np.linalg.inv(covariance_matrix + (1/etta_parameter)* np.eye(la
 laplacian_etta_hat = np.zeros((nodes_number,nodes_number))
 e = np.eye(nodes_number)
 
-#estimate phi ouside to make the script more fast (only for the diagonal points)
+#estimate phi outside to make the script faster (only for the diagonal points)
 
 phi_t_values = [phi_t(e[i]) for i in range(nodes_number)]
 phi_t_0 = phi_t(np.zeros(nodes_number))
 i=j=1
 
-# Estimate the diagonal and off-diagonal entries in the laplacian matrix 
+# Estimate the diagonal and off-diagonal entries in the Laplacian matrix 
 for i in range(nodes_number):
     print(f"Running iteration i = {i}")
     for j in range(nodes_number):
@@ -137,7 +128,7 @@ for i in range(nodes_number):
 laplacian_etta_hat
 laplacian_etta
 
-# Check the threoritical quarantees
+# Check the theoretical guarantees
 
 L_eta_hat = laplacian_etta_hat
 c_eta = np.sqrt(np.linalg.det(L_eta_hat /etta_parameter))
@@ -183,7 +174,7 @@ if np.any(eigvals_diff <= 1e-8):
 precision_matrix_hat = etta_parameter**2*(np.linalg.inv(etta_parameter*np.eye(nodes_number) - laplacian_etta_hat)) - etta_parameter*np.eye(nodes_number)
 precision_matrix_hat
 
-#Lets estimate the forbenius norm for the laplacian and for the precision 
+# Let's estimate the Frobenius norm for the Laplacian and for the precision 
      
 forebenius_norm_error = np.linalg.norm( (precision_matrix_hat-precision_matrix) ,ord = "fro") #overall error
 forebenius_norm_error
@@ -191,7 +182,7 @@ forebenius_norm_error
 spectral_norm_error = np.linalg.norm((precision_matrix_hat-precision_matrix), ord=2) #square root of the maximum eigenvalue
 spectral_norm_error
 
-#Compare with the theoritical bound - check the number of n 
+#Compare with the theoretical bound - check the number of n 
 
 empirical_bound = forebenius_norm_error/nodes_number
 theoritical_bound = np.sqrt(np.log(nodes_number)/number_samples)
@@ -209,13 +200,9 @@ print("Min eig of (eta I - L_eta):", np.min(eigvals))
 
 
 
-#---------------------------------------------------------------------------------------------reconstruct Laplacian ---------------------------
+#---------------------------------------------------------------------------------------------reconstruct Laplacian --------------------------- 
 
-
-#recover the laplacian matrix through the precision hat 
-#reconstruct the graph using the laplacian 
-
-#Recover the laplacian through the precisio matrix 
+#Recover the Laplacian through the precision matrix 
 
 laplacian_GFF  = precision_matrix_hat - mass_parameter*np.eye(nodes_number)
 
@@ -245,8 +232,8 @@ plt.show()
 np.round(laplacian_GFF, decimals=0)
 laplacian_matrix
 
-# look at the eigenvalues of laplacian - properties of the graph (0s - connectivity)- check eigenvalue 
-#Fiedler value - second eigenvalue - tells you how conencted the graph is 
+# look at the eigenvalues of Laplacian - properties of the graph (0s - connectivity)- check eigenvalue 
+#Fiedler value - second eigenvalue - tells you how connected the graph is 
 # average degree of the matrix - global property of Laplacian 
 
 eigenvalues_true = np.linalg.eigvalsh(laplacian_matrix)
@@ -282,7 +269,7 @@ def psi_n(u, X):
 R = np.linalg.norm(covariance_matrix, ord=2) 
 U = R**(-0.5)  # improvised choice
 
-# estitmatorr
+# estimator
 cov_BMT = np.zeros((nodes_number, nodes_number))
 e = np.eye(nodes_number)
 
@@ -328,6 +315,7 @@ eigenvalues_sorted_vanilla = np.sort(eigenvalues_vanilla)
 fiedler_value_vanilla = eigenvalues_sorted_vanilla[1]
 fiedler_value_GFF, fiedler_value_true,fiedler_value_vanilla
 average_degree_GFF, average_degree,average_degree_laplacian_vanilla
+
 
 
 
