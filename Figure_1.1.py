@@ -9,7 +9,7 @@ seed = 7       # random seed for reproducibility
 # graph
 erdos_reyni_graph = nx.erdos_renyi_graph(n=d, p=p, seed=seed)
 
-# Layout for visualization
+# Layout for visualisation
 pos = nx.spring_layout(erdos_reyni_graph, seed=seed)
 
 # Draw
