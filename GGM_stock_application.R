@@ -145,7 +145,7 @@ perc
 
 final_dt[, .N, by = Copula][, perc := 100 * N / sum(N)]
 
-#visualize some of the pairs 
+# visualise some of the pairs 
 
 #Gaussian case 
 k = 1 
@@ -202,7 +202,7 @@ mass_parameter <- 1
 nodes_number <- uniqueN(colnames(closing_prices_df[,-1]))
 # covariance_matrix <- solve(laplacian_matrix + mass_parameter*diag(nodes_number))
 
-#generate mutliple samples from Sigma
+#generate multiple samples from Sigma
 set.seed(123) 
 x_samples <- as.matrix(closing_prices_logr[, -1, with = FALSE])  # wide returns table
 x_samples <- scale(x_samples, center = TRUE, scale = FALSE)      # ensure mean 0
@@ -273,4 +273,5 @@ average_connectiivty <- mean(degree_matrix)
 #fiedler   
 fielder <- eigen(laplacian_etta_hat)$values[order(eigen(laplacian_etta_hat)$values)][2]
 fielder;average_connectiivty
+
 
