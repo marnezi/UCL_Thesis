@@ -134,7 +134,7 @@ for (k in seq_len(ncol(pairs))) {
 }
 
 #saveRDS(final_dt,'final_dt.rds')
-final_dt <- readRDS('final_dt.rds')
+#final_dt <- readRDS('final_dt.rds')
 
 perc <- final_dt[, .N, by = Copula]
 perc[Copula == 'Gumbel']$N <- perc[Copula == 'Gumbel']$N +perc[Copula == 'Survival Gumbel']$N 
@@ -145,7 +145,7 @@ perc
 
 final_dt[, .N, by = Copula][, perc := 100 * N / sum(N)]
 
-# visualise some of the pairs 
+#visualize some of the pairs 
 
 #Gaussian case 
 k = 1 
@@ -169,7 +169,7 @@ i <- pairs[1, k]
 j <- pairs[2, k]
 fit <- BiCopSelect(rank2uniform[[i]], rank2uniform[[j]], familyset = 0:5, selectioncrit = "AIC",indeptest = TRUE, level = 0.05)
 
-u <- BiCopSim(1000, family = 1, par = fit$par)
+u <- BiCopSim(1000, family = 5, par = fit$par)
 
 
 plot2 <- ggplot()+geom_point(aes(JPM,CVX),rank2uniform[,c('JPM','CVX')])+theme_minimal()+
@@ -202,7 +202,7 @@ mass_parameter <- 1
 nodes_number <- uniqueN(colnames(closing_prices_df[,-1]))
 # covariance_matrix <- solve(laplacian_matrix + mass_parameter*diag(nodes_number))
 
-#generate multiple samples from Sigma
+#generate mutliple samples from Sigma
 set.seed(123) 
 x_samples <- as.matrix(closing_prices_logr[, -1, with = FALSE])  # wide returns table
 x_samples <- scale(x_samples, center = TRUE, scale = FALSE)      # ensure mean 0
@@ -252,12 +252,12 @@ precision_matrix_hat = etta_parameter**2*(solve(laplacian_etta_hat+mass_paramete
 
 #Compute the weights from the Laplacian
 adjacency_matrix = -laplacian_etta_hat
-min(adjacency_matrix)
-
-adjacency_matrix <- adjacency_matrix +abs(min(adjacency_matrix))
-min(adjacency_matrix)
-
 diag(adjacency_matrix) <- 0
+min(adjacency_matrix)
+range(adjacency_matrix)
+
+adjacency_matrix[adjacency_matrix < 0] <- 0
+min(adjacency_matrix)
 
 weights_matrix = copy(adjacency_matrix)
 
@@ -273,5 +273,4 @@ average_connectiivty <- mean(degree_matrix)
 #fiedler   
 fielder <- eigen(laplacian_etta_hat)$values[order(eigen(laplacian_etta_hat)$values)][2]
 fielder;average_connectiivty
-
 
