@@ -256,7 +256,7 @@ diag(adjacency_matrix) <- 0
 min(adjacency_matrix)
 range(adjacency_matrix)
 
-adjacency_matrix[adjacency_matrix < 0] <- 0
+adjacency_matrix <-  adjacency_matrix - min(adjacency_matrix)
 min(adjacency_matrix)
 
 weights_matrix = copy(adjacency_matrix)
