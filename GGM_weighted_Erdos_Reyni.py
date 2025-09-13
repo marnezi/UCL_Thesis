@@ -21,12 +21,12 @@ import optuna
 
 seed = 1042 # set seed for reproducibility
 
-# Case 1: we know the Covariance matrix and we are trying to see how well our estimation holds 
+# Case 1: We know the Covariance matrix, and we are trying to see how well our estimation holds 
 #Create a random graph using networkx
 
-# Step 1: Create a Erdos Reyni graph to test 
+# Step 1: Create an Erdos-Reyni graph to test 
 nodes_number = 10 # Laplacian_matrix.shape[1] # number of nodes 
-transition_prob = 0.6 # probability of # of edges per node (we keep it high so we have less disconnected samples)
+transition_prob = 0.6 # probability of # of edges per node (we keep it high so we have fewer disconnected samples)
 
 np.log(10)/10
 
@@ -39,13 +39,13 @@ nx.draw(er_igraph, pos=pos, with_labels=True, edge_color='gray', node_size=800, 
 plt.title("Erdős–Rényi Graph")
 plt.show()
 
-#Configuration settigns
+#Configuration settings
 
 number_samples = 100000
-mass_parameter = 1000# we keep this fixed if it is too smaller than one the eigenvalues of sigma will be close to zero and make it ill-conditioned 
+mass_parameter = 1000# we keep this fixed, if it is too small, then the eigenvalues of sigma will be close to zero and make it ill-conditioned 
 etta_parameter = 1100 # smoothing parameter 
 
-fixed_node = 0 # at least one node equal to zero Dirichlet boundary condition 
+fixed_node = 0 # at least one node equal to zero, Dirichlet boundary condition 
 
 #Check 
 (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
@@ -55,11 +55,11 @@ number_samples> (nodes_number**4)*np.log(nodes_number)*(transition_prob**(-2))
 
 # Step 1: Simulate a Gaussian Free Field of a graph many times (independent graphs) and 
 # estimate the true Sigma
-# now following the methodology estimate the estimate of Sigma -1 (hat)
+# now following the methodology, estimate the estimate of Sigma -1 (hat)
 # check how close they are 
-# look at the bounds and which variables have the most impact on the consentration 
-# check how good is the recovering procedure 
-# what is the error estimate - what influence it the most - plots 
+# look at the bounds and which variables have the most impact on the concentration 
+# check how good the recovery procedure is 
+# what is the error estimate - what influences it the most - plots 
 
 #  Add random weights to edges
 for u, v in er_igraph.edges():
@@ -103,13 +103,13 @@ laplacian_etta = np.linalg.inv(covariance_matrix + (1/etta_parameter)* np.eye(la
 laplacian_etta_hat = np.zeros((nodes_number,nodes_number))
 e = np.eye(nodes_number)
 
-#estimate phi ouside to make the script more fast (only for the diagonal points)
+#estimate phi outside to make the script faster (only for the diagonal points)
 
 phi_t_values = [phi_t(e[i]) for i in range(nodes_number)]
 phi_t_0 = phi_t(np.zeros(nodes_number))
 i=j=1
 
-# Estimate the diagonal and off-diagonal entries in the laplacian matrix 
+# Estimate the diagonal and off-diagonal entries in the Laplacian matrix 
 for i in range(nodes_number):
     print(f"Running iteration i = {i}")
     for j in range(nodes_number):
@@ -135,7 +135,7 @@ print("Max eigenvalue:", np.max(eigvals))
 print("Condition number:", np.max(eigvals) / np.min(eigvals))
       
       
-# estimate the precision matrix from the laplacian etta
+# estimate the precision matrix from the Laplacian etta
 eigvals_diff = np.linalg.eigvalsh(etta_parameter * np.eye(nodes_number) - laplacian_etta)
 eigvals_diff
 
@@ -145,7 +145,7 @@ if np.any(eigvals_diff <= 1e-8):
      
 precision_matrix_hat = etta_parameter**2*(np.linalg.inv(etta_parameter*np.eye(nodes_number) - laplacian_etta)) - etta_parameter*np.eye(nodes_number)
    
-#Lets estimate the forbenius norm for the laplacian and for the precision 
+# Let's estimate the Frobenius norm for the Laplacian and for the precision 
      
 forebenius_norm_error = np.linalg.norm( (precision_matrix_hat-precision_matrix) ,ord = "fro") #overall error
 forebenius_norm_error
@@ -153,7 +153,7 @@ forebenius_norm_error
 spectral_norm_error = np.linalg.norm((precision_matrix_hat-precision_matrix), ord=2) #square root of the maximum eigenvalue
 spectral_norm_error
 
-#Compare with the theoritical bound - check the number of n 
+#Compare with the theoretical bound - check the number of n 
 
 empirical_bound = forebenius_norm_error/nodes_number
 theoritical_bound = np.sqrt(np.log(nodes_number)/number_samples)
